@@ -1,4 +1,4 @@
-## Hue
+## Hi
 hi behaves like grep, except hi prints everything, and highlights the matching pattern.
 hi highlights, grep cuts
 
