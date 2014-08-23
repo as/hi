@@ -26,3 +26,8 @@ Precondition: You have the go compiler 'go' installed on your system
 
 	// You can move hi to /usr/bin, or add $GOBIN to your $PATH
 ```
+## Known Issues
+* Inconsistency: grep prints the entire line that a pattern matches. hi behaves like grep -o, highlighting only the matching pattern
+
+## TODO
+* hi behaves like grep -o, make it behave like default grep and add the -o option to highlight only the pattern

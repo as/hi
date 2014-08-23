@@ -13,7 +13,7 @@ import (
 
 type runtimeArgs struct {
 	fg, bg, regexp, pattern *string
-	files []*string
+	files                   []*string
 }
 
 // badColor lets the user know that the color they selected is unsupported. It iterates through all
@@ -40,24 +40,25 @@ func showHelp() {
 	fmt.Printf("\nFILE\n")
 	fmt.Printf("One or more files\n\n")
 	fmt.Printf("EXAMPLES\n")
-	fmt.Printf("ifconfig | hi --fg green 'inet .*'\n")
-	fmt.Printf("hi --fg blue defaults < /etc/fstab\n")
+	fmt.Printf("ifconfig | hi 'inet .*'\n")
+	fmt.Printf("hi --fg blue --bg white defaults < /etc/fstab\n")
 	fmt.Printf("hi '[eE]' ~/books/thegreatgatsby.txt\n")
 	fmt.Printf("\nRETURN VALUE\n")
 	fmt.Printf("Returns 0 if no fatal errors have occured and at least one pattern is matched\n")
 }
 
-// validArgs returns true if mandatory args (current, just the match pattern) are set.
+// validArgs returns true if the required arguments to run the program have been provided
+// on the command line.
 func validArgs(args *runtimeArgs) bool {
 	flag.Usage = showHelp
 
-	args.fg = flag.String("fg", "black", "color of the foreground")
-	args.bg = flag.String("bg", "green", "color of the background")
+	args.fg = flag.String("fg", "black", "foreground color")
+	args.bg = flag.String("bg", "green", "background color")
 
 	flag.Parse()
 
 	if args.fg == nil || hue.StringToHue[*args.fg] == 0 {
-		badColor(*args.fg)
+		badColor(*args.fg) // prints an error message w/ a list of supported colors
 		return false
 	}
 
@@ -66,7 +67,8 @@ func validArgs(args *runtimeArgs) bool {
 		return false
 	}
 
-	// Get the remaining flags
+	// Get the remaining flags, which should
+	// consist of a pattern, and optionally, one or more file names.
 	rem := flag.Args()
 
 	switch {
@@ -85,16 +87,13 @@ func validArgs(args *runtimeArgs) bool {
 	}
 
 	return true
-
 }
-
 
 func pipedWrite(in *bufio.Reader, out *hue.RegexpWriter) int {
 	var (
-		buf []byte
-		err error
-		r int
-		w, tmpw int
+		buf        []byte
+		err        error
+		r, w, tmpw int
 	)
 
 	for {
@@ -106,7 +105,6 @@ func pipedWrite(in *bufio.Reader, out *hue.RegexpWriter) int {
 		if tmpw, err = out.Write(buf); err != nil {
 			break
 		}
-
 		w += tmpw
 	}
 
@@ -119,7 +117,7 @@ func main() {
 	// Difference between bytes written and bytes read. If delta != 0,
 	// that means a match for the PATTERN was found, and the program will
 	// return 0.
-	var delta int 
+	var delta int
 
 	if !validArgs(&args) {
 		os.Exit(1)
@@ -138,12 +136,14 @@ func main() {
 		in := bufio.NewReader(os.Stdin)
 		delta = pipedWrite(in, out)
 	} else {
-		// Otherwise we open the files one-by-one and do our thing
+		// Otherwise we open the files one-by-one
 		for _, v := range args.files {
 			fd, err := os.Open(*v)
 			if err != nil {
 				fmt.Println(err)
+				continue
 			}
+
 			in := bufio.NewReader(fd)
 			delta += pipedWrite(in, out)
 		}
